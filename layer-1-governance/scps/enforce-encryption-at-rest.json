@@ -1,0 +1,38 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "DenyUnencryptedS3",
+        "Effect": "Deny",
+        "Action": "s3:PutObject",
+        "Resource": "*",
+        "Condition": {
+          "StringNotEquals": {
+            "s3:x-amz-server-side-encryption": ["aws:kms", "AES256"]
+          }
+        }
+      },
+      {
+        "Sid": "DenyUnencryptedEBS",
+        "Effect": "Deny",
+        "Action": "ec2:CreateVolume",
+        "Resource": "*",
+        "Condition": {
+          "Bool": {
+            "ec2:Encrypted": "false"
+          }
+        }
+      },
+      {
+        "Sid": "DenyUnencryptedRDS",
+        "Effect": "Deny",
+        "Action": "rds:CreateDBInstance",
+        "Resource": "*",
+        "Condition": {
+          "Bool": {
+            "rds:StorageEncrypted": "false"
+          }
+        }
+      }
+    ]
+  }

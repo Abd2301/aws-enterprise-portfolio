@@ -1,0 +1,28 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "DenyPublicRDSSnapshot",
+        "Effect": "Deny",
+        "Action": "rds:ModifyDBSnapshotAttribute",
+        "Resource": "*",
+        "Condition": {
+          "StringEquals": {
+            "rds:AttributeName": "restore",
+            "rds:AttributeValue": "all"
+          }
+        }
+      },
+      {
+        "Sid": "DenyPublicAMI",
+        "Effect": "Deny",
+        "Action": "ec2:ModifyImageAttribute",
+        "Resource": "*",
+        "Condition": {
+          "StringEquals": {
+            "ec2:Add/group": "all"
+          }
+        }
+      }
+    ]
+  }
