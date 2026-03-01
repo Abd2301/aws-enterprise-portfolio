@@ -653,13 +653,6 @@ Successfully tested with simulated HIGH severity finding:
 
 ---
 
-## Interview Talking Points
-
-### 30-Second Pitch
-*"Layer 1 establishes a Zero Trust governance foundation across 7 AWS accounts. Service Control Policies create hard permission boundaries that even account administrators can't bypass. Control Tower enforces 93 preventive guardrails automatically. GuardDuty, Security Hub, and Config provide continuous threat detection and compliance monitoring through a delegated administrator pattern — all findings centralized in a dedicated Security-Tooling account. When GuardDuty detects a high-severity threat, an EventBridge-triggered Lambda automatically isolates the compromised resource within seconds — reducing mean time to contain from hours to under one minute."*
-
----
-
 ### Common Interview Questions
 
 **Q: Why multi-account instead of a single account with VPCs?**
