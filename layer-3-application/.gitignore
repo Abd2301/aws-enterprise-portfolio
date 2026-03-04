@@ -1,0 +1,9 @@
+# Terraform state files - contain sensitive resource details
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform.lock.hcl
+
+# Lambda build artifacts
+*.zip
