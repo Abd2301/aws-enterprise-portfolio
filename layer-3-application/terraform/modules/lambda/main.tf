@@ -118,8 +118,17 @@ data "aws_iam_policy_document" "lambda_permissions" {
     ]
     resources = ["*"]
   }
-}
 
+  # EventBridge - publish order state change events
+  statement {
+    sid    = "EventBridge"
+    effect = "Allow"
+    actions = [
+      "events:PutEvents",
+    ]
+    resources = ["*"]
+  }
+}
 resource "aws_iam_role_policy" "lambda_permissions" {
   name   = "${var.project_name}-lambda-policy-${var.environment}"
   role   = aws_iam_role.lambda_execution.id

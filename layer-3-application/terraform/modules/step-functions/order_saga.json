@@ -1,0 +1,178 @@
+{
+    "Comment": "Enterprise Order Processing Saga - Orchestrates payment, inventory, and fulfillment with compensating transactions",
+    "StartAt": "ProcessPayment",
+    "States": {
+      "ProcessPayment": {
+        "Type": "Task",
+        "Resource": "${process_payment_arn}",
+        "Comment": "Saga Step 1: Charge the customer",
+        "TimeoutSeconds": 30,
+        "Retry": [
+          {
+            "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error",
+            "Next": "PaymentFailed"
+          }
+        ],
+        "Next": "ReserveInventory"
+      },
+  
+      "ReserveInventory": {
+        "Type": "Task",
+        "Resource": "${reserve_inventory_arn}",
+        "Comment": "Saga Step 2: Reserve stock for the order",
+        "TimeoutSeconds": 30,
+        "Retry": [
+          {
+            "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error",
+            "Next": "ReversePaymentAfterInventoryFailure"
+          }
+        ],
+        "Next": "InitiateFulfillment"
+      },
+  
+      "InitiateFulfillment": {
+        "Type": "Task",
+        "Resource": "${initiate_fulfillment_arn}",
+        "Comment": "Saga Step 3: Ship the order",
+        "TimeoutSeconds": 30,
+        "Retry": [
+          {
+            "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.error",
+            "Next": "ReleaseInventoryAfterFulfillmentFailure"
+          }
+        ],
+        "Next": "OrderCompleted"
+      },
+  
+      "OrderCompleted": {
+        "Type": "Succeed",
+        "Comment": "Happy path - all three steps succeeded"
+      },
+  
+      "PaymentFailed": {
+        "Type": "Pass",
+        "Comment": "Payment failed - nothing to compensate, just mark failed",
+        "Result": {
+          "SagaStatus": "FAILED",
+          "FailedAt": "ProcessPayment",
+          "Message": "Payment processing failed - no compensation needed"
+        },
+        "ResultPath": "$.sagaResult",
+        "Next": "OrderFailed"
+      },
+  
+      "ReversePaymentAfterInventoryFailure": {
+        "Type": "Task",
+        "Resource": "${reverse_payment_arn}",
+        "Comment": "Compensation: Inventory failed, reverse the payment",
+        "TimeoutSeconds": 30,
+        "Retry": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "IntervalSeconds": 5,
+            "MaxAttempts": 3,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.compensationError",
+            "Next": "CompensationFailed"
+          }
+        ],
+        "Next": "OrderFailedAfterCompensation"
+      },
+  
+      "ReleaseInventoryAfterFulfillmentFailure": {
+        "Type": "Task",
+        "Resource": "${release_inventory_arn}",
+        "Comment": "Compensation: Fulfillment failed, release reserved inventory first",
+        "TimeoutSeconds": 30,
+        "Retry": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "IntervalSeconds": 5,
+            "MaxAttempts": 3,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.compensationError",
+            "Next": "CompensationFailed"
+          }
+        ],
+        "Next": "ReversePaymentAfterFulfillmentFailure"
+      },
+  
+      "ReversePaymentAfterFulfillmentFailure": {
+        "Type": "Task",
+        "Resource": "${reverse_payment_arn}",
+        "Comment": "Compensation: After releasing inventory, also reverse payment",
+        "TimeoutSeconds": 30,
+        "Retry": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "IntervalSeconds": 5,
+            "MaxAttempts": 3,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Catch": [
+          {
+            "ErrorEquals": ["States.ALL"],
+            "ResultPath": "$.compensationError",
+            "Next": "CompensationFailed"
+          }
+        ],
+        "Next": "OrderFailedAfterCompensation"
+      },
+  
+      "OrderFailedAfterCompensation": {
+        "Type": "Fail",
+        "Error": "OrderProcessingFailed",
+        "Cause": "Order failed but all compensating transactions completed successfully"
+      },
+  
+      "CompensationFailed": {
+        "Type": "Fail",
+        "Error": "CompensationFailed",
+        "Cause": "CRITICAL: Compensating transaction failed - requires manual intervention"
+      },
+  
+      "OrderFailed": {
+        "Type": "Fail",
+        "Error": "OrderProcessingFailed",
+        "Cause": "Order processing failed at first step - no compensation needed"
+      }
+    }
+  }

@@ -77,3 +77,31 @@ module "api_gateway" {
   get_order_invoke_arn       = module.lambda.get_order_invoke_arn
   get_order_function_name    = module.lambda.get_order_function_name
 }
+
+
+# --- Orchestration Layer ---
+module "step_functions" {
+  source = "./modules/step-functions"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  # Wire Lambda ARNs for saga steps
+  process_payment_arn     = module.lambda.process_payment_arn
+  reserve_inventory_arn   = module.lambda.reserve_inventory_arn
+  initiate_fulfillment_arn = module.lambda.initiate_fulfillment_arn
+
+  # Wire Lambda ARNs for compensation
+  reverse_payment_arn     = module.lambda.reverse_payment_arn
+  release_inventory_arn   = module.lambda.release_inventory_arn
+}
+
+# --- Event-Driven Layer ---
+module "events" {
+  source = "./modules/events"
+
+  project_name             = var.project_name
+  environment              = var.environment
+  orders_stream_arn        = module.dynamodb.orders_stream_arn
+  lambda_execution_role_arn = module.lambda.lambda_execution_role_arn
+}
