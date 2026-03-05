@@ -23,3 +23,9 @@ output "idempotency_table_name" {
   description = "Idempotency DynamoDB table name"
   value       = module.dynamodb.idempotency_table_name
 }
+
+# --- API Gateway ---
+output "api_endpoint" {
+  description = "API Gateway endpoint URL"
+  value       = module.api_gateway.api_endpoint
+} 

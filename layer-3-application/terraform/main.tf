@@ -62,4 +62,18 @@ module "lambda" {
   event_store_table_arn  = module.dynamodb.event_store_table_arn
   idempotency_table_name = module.dynamodb.idempotency_table_name
   idempotency_table_arn  = module.dynamodb.idempotency_table_arn
+  
+}
+
+# --- API Layer ---
+module "api_gateway" {
+  source = "./modules/api-gateway"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  create_order_invoke_arn    = module.lambda.create_order_invoke_arn
+  create_order_function_name = module.lambda.create_order_function_name
+  get_order_invoke_arn       = module.lambda.get_order_invoke_arn
+  get_order_function_name    = module.lambda.get_order_function_name
 }

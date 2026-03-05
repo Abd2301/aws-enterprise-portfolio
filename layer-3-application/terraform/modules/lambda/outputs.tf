@@ -61,7 +61,7 @@ output "release_inventory_arn" {
 output "lambda_security_group_id" {
   description = "Lambda security group ID for network rules"
   value       = aws_security_group.lambda.id
-}
+}       
 
 # --- IAM Role ---
 output "lambda_execution_role_arn" {

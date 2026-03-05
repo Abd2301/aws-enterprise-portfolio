@@ -56,4 +56,4 @@ variable "idempotency_table_arn" {
 variable "orders_stream_arn" {
   description = "Orders DynamoDB stream ARN for event source mapping"
   type        = string
-}
+}   

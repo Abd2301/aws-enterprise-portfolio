@@ -16,6 +16,7 @@ Architectural Patterns:
 """
 
 import json
+from decimal import Decimal
 import uuid
 import os
 import time
@@ -25,8 +26,16 @@ import boto3
 from botocore.exceptions import ClientError
 
 # Initialize AWS clients outside the handler.
-# These persist across warm invocations, avoiding re-initialization.
+# These persist across warm invocations, avoiding re-initialization. 
 # This is a Lambda best practice called "static initialization."
+class DecimalEncoder(json.JSONEncoder):
+    """Handle Decimal types when serializing to JSON."""
+    def default(self, obj):
+        from decimal import Decimal
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+        
 dynamodb = boto3.resource("dynamodb")
 
 # Table names come from environment variables, NOT hardcoded.
@@ -50,7 +59,7 @@ def lambda_handler(event, context):
     """
     try:
         # Parse request body
-        body = json.loads(event.get("body", "{}"))
+        body = json.loads(event.get("body", "{}"), parse_float=Decimal)
 
         # Validate required fields
         validation_error = validate_order(body)
@@ -85,7 +94,7 @@ def lambda_handler(event, context):
             "OrderId": order_id,
             "EventTimestamp": timestamp,
             "EventType": "OrderCreated",
-            "EventData": json.dumps(order),
+            "EventData": json.dumps(order, cls=DecimalEncoder),
             "Metadata": {
                 "RequestId": context.aws_request_id,
                 "FunctionName": context.function_name,
@@ -125,7 +134,7 @@ def validate_order(body):
     if not isinstance(body["items"], list) or len(body["items"]) == 0:
         return "Items must be a non-empty list"
 
-    if not isinstance(body["total_amount"], (int, float)) or body["total_amount"] <= 0:
+    if not isinstance(body["total_amount"], (int, float, Decimal)) or body["total_amount"] <= 0:
         return "Total amount must be a positive number"
 
     return None
@@ -157,7 +166,7 @@ def store_idempotency(key, order):
         "ResponseBody": json.dumps({
             "message": "Order created successfully",
             "order": order,
-        }, default=str),
+        }, cls=DecimalEncoder),
         "ExpiresAt": ttl,
         "CreatedAt": datetime.now(timezone.utc).isoformat(),
     })
@@ -171,5 +180,5 @@ def response(status_code, body):
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
         },
-        "body": json.dumps(body, default=str),
+        "body": json.dumps(body, cls=DecimalEncoder),
     }

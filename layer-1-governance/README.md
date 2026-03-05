@@ -1,6 +1,6 @@
 # Layer 1: Zero Trust Multi-Account Governance
 
-> **Enterprise AWS Portfolio Project** | Principal Cloud Architect Portfolio  
+> **Enterprise AWS Portfolio Project** 
 > **Status:** ✅ Complete | **Region:** us-east-1 (primary), us-west-2 (secondary)  
 > **Total Cost:** ~$25-35 | **Time to Build:** ~2 days
 
@@ -650,6 +650,13 @@ Successfully tested with simulated HIGH severity finding:
 **Chose:** Custom permission set using AWS SecurityAudit managed policy
 
 **Why:** AWS doesn't have a pre-built "SecurityAuditor" Identity Center permission set. SecurityAudit managed policy gives read access to all security-relevant services without write permissions — perfect for the security team's day-to-day work of reviewing findings without modifying configurations.
+
+---
+
+## Interview Talking Points
+
+### 30-Second Pitch
+*"Layer 1 establishes a Zero Trust governance foundation across 7 AWS accounts. Service Control Policies create hard permission boundaries that even account administrators can't bypass. Control Tower enforces 93 preventive guardrails automatically. GuardDuty, Security Hub, and Config provide continuous threat detection and compliance monitoring through a delegated administrator pattern — all findings centralized in a dedicated Security-Tooling account. When GuardDuty detects a high-severity threat, an EventBridge-triggered Lambda automatically isolates the compromised resource within seconds — reducing mean time to contain from hours to under one minute."*
 
 ---
 

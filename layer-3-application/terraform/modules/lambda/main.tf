@@ -486,3 +486,24 @@ resource "aws_cloudwatch_log_group" "release_inventory" {
   retention_in_days = 14
   tags = { Component = "Observability" }
 }
+
+data "aws_route_tables" "private" {
+  vpc_id = var.vpc_id
+
+  filter {
+    name   = "association.subnet-id"
+    values = var.private_subnet_ids
+  }
+}
+
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = var.vpc_id
+  service_name      = "com.amazonaws.us-east-1.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = data.aws_route_tables.private.ids
+
+  tags = {
+    Name      = "${var.project_name}-dynamodb-endpoint-${var.environment}"
+    Component = "Network"
+  }
+}
