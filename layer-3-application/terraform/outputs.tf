@@ -28,13 +28,13 @@ output "idempotency_table_name" {
 output "api_endpoint" {
   description = "API Gateway endpoint URL"
   value       = module.api_gateway.api_endpoint
-} 
+}
 
 # --- Step Functions ---
 output "state_machine_arn" {
   description = "Order saga state machine ARN"
   value       = module.step_functions.state_machine_arn
-}# CI/CD Pipeline Active
+} # CI/CD Pipeline Active
 
 
 

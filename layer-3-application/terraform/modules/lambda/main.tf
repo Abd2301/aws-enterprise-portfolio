@@ -457,43 +457,43 @@ resource "aws_lambda_function" "release_inventory" {
 resource "aws_cloudwatch_log_group" "create_order" {
   name              = "/aws/lambda/${aws_lambda_function.create_order.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 resource "aws_cloudwatch_log_group" "get_order" {
   name              = "/aws/lambda/${aws_lambda_function.get_order.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 resource "aws_cloudwatch_log_group" "process_payment" {
   name              = "/aws/lambda/${aws_lambda_function.process_payment.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 resource "aws_cloudwatch_log_group" "reserve_inventory" {
   name              = "/aws/lambda/${aws_lambda_function.reserve_inventory.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 resource "aws_cloudwatch_log_group" "initiate_fulfillment" {
   name              = "/aws/lambda/${aws_lambda_function.initiate_fulfillment.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 resource "aws_cloudwatch_log_group" "reverse_payment" {
   name              = "/aws/lambda/${aws_lambda_function.reverse_payment.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 resource "aws_cloudwatch_log_group" "release_inventory" {
   name              = "/aws/lambda/${aws_lambda_function.release_inventory.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 data "aws_route_tables" "private" {

@@ -33,8 +33,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 8
         height = 6
         properties = {
-          title   = "API Gateway Requests"
-          region  = var.aws_region
+          title  = "API Gateway Requests"
+          region = var.aws_region
           metrics = [
             ["AWS/ApiGateway", "Count", "ApiId", module.api_gateway.api_id, { stat = "Sum", period = 60 }]
           ]
@@ -47,8 +47,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 8
         height = 6
         properties = {
-          title   = "API Gateway Latency (ms)"
-          region  = var.aws_region
+          title  = "API Gateway Latency (ms)"
+          region = var.aws_region
           metrics = [
             ["AWS/ApiGateway", "Latency", "ApiId", module.api_gateway.api_id, { stat = "Average", period = 60 }],
             ["AWS/ApiGateway", "Latency", "ApiId", module.api_gateway.api_id, { stat = "p99", period = 60 }]
@@ -62,8 +62,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 8
         height = 6
         properties = {
-          title   = "API Gateway 4xx/5xx Errors"
-          region  = var.aws_region
+          title  = "API Gateway 4xx/5xx Errors"
+          region = var.aws_region
           metrics = [
             ["AWS/ApiGateway", "4xx", "ApiId", module.api_gateway.api_id, { stat = "Sum", period = 60, color = "#ff9900" }],
             ["AWS/ApiGateway", "5xx", "ApiId", module.api_gateway.api_id, { stat = "Sum", period = 60, color = "#d13212" }]
@@ -77,8 +77,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title   = "Lambda Invocations"
-          region  = var.aws_region
+          title  = "Lambda Invocations"
+          region = var.aws_region
           metrics = [
             ["AWS/Lambda", "Invocations", "FunctionName", "${var.project_name}-create-order-${var.environment}", { stat = "Sum", period = 60 }],
             ["AWS/Lambda", "Invocations", "FunctionName", "${var.project_name}-get-order-${var.environment}", { stat = "Sum", period = 60 }],
@@ -94,8 +94,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title   = "Lambda Errors"
-          region  = var.aws_region
+          title  = "Lambda Errors"
+          region = var.aws_region
           metrics = [
             ["AWS/Lambda", "Errors", "FunctionName", "${var.project_name}-create-order-${var.environment}", { stat = "Sum", period = 60 }],
             ["AWS/Lambda", "Errors", "FunctionName", "${var.project_name}-process-payment-${var.environment}", { stat = "Sum", period = 60 }],
@@ -111,8 +111,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 8
         height = 6
         properties = {
-          title   = "Step Functions Executions"
-          region  = var.aws_region
+          title  = "Step Functions Executions"
+          region = var.aws_region
           metrics = [
             ["AWS/States", "ExecutionsStarted", "StateMachineArn", module.step_functions.state_machine_arn, { stat = "Sum", period = 60, color = "#2ca02c" }],
             ["AWS/States", "ExecutionsSucceeded", "StateMachineArn", module.step_functions.state_machine_arn, { stat = "Sum", period = 60, color = "#1f77b4" }],
@@ -127,8 +127,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 8
         height = 6
         properties = {
-          title   = "DynamoDB Read/Write"
-          region  = var.aws_region
+          title  = "DynamoDB Read/Write"
+          region = var.aws_region
           metrics = [
             ["AWS/DynamoDB", "ConsumedReadCapacityUnits", "TableName", module.dynamodb.orders_table_name, { stat = "Sum", period = 60 }],
             ["AWS/DynamoDB", "ConsumedWriteCapacityUnits", "TableName", module.dynamodb.orders_table_name, { stat = "Sum", period = 60 }]
@@ -142,8 +142,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 8
         height = 6
         properties = {
-          title   = "SQS Queue Depth"
-          region  = var.aws_region
+          title  = "SQS Queue Depth"
+          region = var.aws_region
           metrics = [
             ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${var.project_name}-order-analytics-${var.environment}", { stat = "Average", period = 60 }],
             ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${var.project_name}-order-analytics-dlq-${var.environment}", { stat = "Average", period = 60, color = "#d13212" }]

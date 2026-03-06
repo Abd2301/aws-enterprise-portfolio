@@ -18,7 +18,7 @@ terraform {
     key            = "layer-3/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "enterprise-terraform-locks"
-    encrypt        = true   
+    encrypt        = true
   }
 }
 
@@ -60,7 +60,7 @@ module "lambda" {
   event_store_table_arn  = module.dynamodb.event_store_table_arn
   idempotency_table_name = module.dynamodb.idempotency_table_name
   idempotency_table_arn  = module.dynamodb.idempotency_table_arn
-  
+
 }
 
 # --- API Layer ---
@@ -85,21 +85,21 @@ module "step_functions" {
   environment  = var.environment
 
   # Wire Lambda ARNs for saga steps
-  process_payment_arn     = module.lambda.process_payment_arn
-  reserve_inventory_arn   = module.lambda.reserve_inventory_arn
+  process_payment_arn      = module.lambda.process_payment_arn
+  reserve_inventory_arn    = module.lambda.reserve_inventory_arn
   initiate_fulfillment_arn = module.lambda.initiate_fulfillment_arn
 
   # Wire Lambda ARNs for compensation
-  reverse_payment_arn     = module.lambda.reverse_payment_arn
-  release_inventory_arn   = module.lambda.release_inventory_arn
+  reverse_payment_arn   = module.lambda.reverse_payment_arn
+  release_inventory_arn = module.lambda.release_inventory_arn
 }
 
 # --- Event-Driven Layer ---
 module "events" {
   source = "./modules/events"
 
-  project_name             = var.project_name
-  environment              = var.environment
-  orders_stream_arn        = module.dynamodb.orders_stream_arn
+  project_name              = var.project_name
+  environment               = var.environment
+  orders_stream_arn         = module.dynamodb.orders_stream_arn
   lambda_execution_role_arn = module.lambda.lambda_execution_role_arn
 }

@@ -30,9 +30,9 @@ resource "aws_cloudwatch_event_bus" "orders" {
 
 resource "aws_sqs_queue" "order_analytics" {
   name                       = "${var.project_name}-order-analytics-${var.environment}"
-  message_retention_seconds  = 86400          # 24 hours
-  visibility_timeout_seconds = 60             # Consumer has 60s to process
-  receive_wait_time_seconds  = 20             # Long polling - reduces empty API calls
+  message_retention_seconds  = 86400 # 24 hours
+  visibility_timeout_seconds = 60    # Consumer has 60s to process
+  receive_wait_time_seconds  = 20    # Long polling - reduces empty API calls
 
   tags = {
     Component = "Events"
@@ -45,7 +45,7 @@ resource "aws_sqs_queue" "order_analytics" {
 # With a DLQ, they move here after 3 failures for investigation.
 resource "aws_sqs_queue" "order_analytics_dlq" {
   name                      = "${var.project_name}-order-analytics-dlq-${var.environment}"
-  message_retention_seconds = 604800          # 7 days - gives ops team time to investigate
+  message_retention_seconds = 604800 # 7 days - gives ops team time to investigate
 
   tags = {
     Component = "Events"
@@ -58,7 +58,7 @@ resource "aws_sqs_queue_redrive_policy" "order_analytics" {
   queue_url = aws_sqs_queue.order_analytics.id
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.order_analytics_dlq.arn
-    maxReceiveCount     = 3      # After 3 failed attempts, move to DLQ
+    maxReceiveCount     = 3 # After 3 failed attempts, move to DLQ
   })
 }
 
@@ -213,7 +213,7 @@ resource "aws_lambda_function" "stream_consumer" {
 resource "aws_cloudwatch_log_group" "stream_consumer" {
   name              = "/aws/lambda/${aws_lambda_function.stream_consumer.function_name}"
   retention_in_days = 14
-  tags = { Component = "Observability" }
+  tags              = { Component = "Observability" }
 }
 
 # Connect DynamoDB Stream to Lambda

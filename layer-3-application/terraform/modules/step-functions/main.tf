@@ -117,11 +117,11 @@ resource "aws_sfn_state_machine" "order_saga" {
   role_arn = aws_iam_role.sfn_execution.arn
 
   definition = templatefile("${path.module}/order_saga.json", {
-    process_payment_arn     = var.process_payment_arn
-    reserve_inventory_arn   = var.reserve_inventory_arn
+    process_payment_arn      = var.process_payment_arn
+    reserve_inventory_arn    = var.reserve_inventory_arn
     initiate_fulfillment_arn = var.initiate_fulfillment_arn
-    reverse_payment_arn     = var.reverse_payment_arn
-    release_inventory_arn   = var.release_inventory_arn
+    reverse_payment_arn      = var.reverse_payment_arn
+    release_inventory_arn    = var.release_inventory_arn
   })
 
   logging_configuration {
