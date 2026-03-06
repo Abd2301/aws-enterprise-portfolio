@@ -1,0 +1,145 @@
+# ============================================================
+# Layer 3 CI/CD Pipeline
+# Enterprise Order Processing Platform
+#
+# Authentication flow:
+#   GitHub OIDC → Management Account (GitHubActions-CICDPipeline)
+#     → state bucket/lock table access
+#     → assume TerraformExecutionRole in Production Account
+#       → deploy resources
+#
+# Triggers:
+#   - PR to main: terraform plan (review changes)
+#   - Push to main: terraform apply (deploy changes)
+# ============================================================
+
+name: "Layer 3 - Terraform Deploy"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "layer-3-application/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "layer-3-application/**"
+
+# Required for OIDC federation - requests JWT token from GitHub
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  TF_WORKING_DIR: layer-3-application/terraform
+  AWS_REGION: us-east-1
+
+jobs:
+  terraform:
+    name: "Terraform"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      # --- Checkout Code ---
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- AWS Authentication (OIDC) ---
+      # Step 1: Assume CI/CD role in Management Account
+      # This role has access to state bucket + can assume into Production
+      - name: Configure AWS credentials (Management Account)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::574337396853:role/GitHubActions-CICDPipeline
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Step 2: Assume TerraformExecutionRole in Production Account
+      # This role has permissions to deploy all Layer 3 resources
+      - name: Assume Production deployment role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::159326043807:role/TerraformExecutionRole
+          aws-region: ${{ env.AWS_REGION }}
+          role-chaining: true
+
+      # --- Terraform Setup ---
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.6"
+
+      # --- Terraform Init ---
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      # --- Terraform Format Check ---
+      # Ensures consistent code style across team
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+
+      # --- Terraform Validate ---
+      # Catches syntax errors before planning
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      # --- Terraform Plan ---
+      # Shows what will change — review this on PRs
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -var-file=environments/production.ci.tfvars -no-color -out=tfplan
+        continue-on-error: true
+
+      # --- Post Plan to PR ---
+      # On pull requests, post the plan output as a comment
+      # so reviewers can see exactly what infrastructure changes
+      - name: Post Plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const planOutput = `${{ steps.plan.outputs.stdout }}`;
+            const truncated = planOutput.length > 60000 
+              ? planOutput.substring(0, 60000) + '\n... (truncated)'
+              : planOutput;
+            
+            const body = `## Terraform Plan Results
+            
+            | Step | Status |
+            |------|--------|
+            | Format | ${{ steps.fmt.outcome == 'success' && '✅' || '⚠️' }} |
+            | Validate | ${{ steps.validate.outcome == 'success' && '✅' || '❌' }} |
+            | Plan | ${{ steps.plan.outcome == 'success' && '✅' || '❌' }} |
+            
+            <details>
+            <summary>Show Plan Output</summary>
+            
+            \`\`\`terraform
+            ${truncated}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # --- Terraform Apply ---
+      # Only runs on push to main (after PR is merged)
+      # Uses the saved plan file for exact execution
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve tfplan

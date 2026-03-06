@@ -15,6 +15,7 @@ variable "aws_region" {
 variable "aws_profile" {
   description = "AWS CLI profile for authentication"
   type        = string
+  default     = null
 }
 
 variable "project_name" {

@@ -2,8 +2,11 @@
 .terraform/
 *.tfstate
 *.tfstate.backup
-*.tfvars
 .terraform.lock.hcl
+
+# Local tfvars with sensitive values (SSO profiles, etc)
+# CI tfvars are safe to commit (no secrets)
+terraform/environments/production.tfvars
 
 # Lambda build artifacts
 *.zip

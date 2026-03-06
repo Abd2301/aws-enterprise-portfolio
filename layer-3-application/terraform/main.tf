@@ -18,15 +18,13 @@ terraform {
     key            = "layer-3/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "enterprise-terraform-locks"
-    encrypt        = true
-    profile        = "default"
+    encrypt        = true   
   }
 }
 
 provider "aws" {
   region  = var.aws_region
-  profile = var.aws_profile
-
+  profile = var.aws_profile != null ? var.aws_profile : null
   default_tags {
     tags = {
       Project     = "Enterprise-AWS-Foundation"
