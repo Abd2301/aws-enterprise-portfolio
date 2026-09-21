@@ -1,134 +1,118 @@
-# Enterprise AWS Foundation
+# AWS Multi-Account Foundation
 
-A production-grade, three-layer AWS platform demonstrating how Fortune 500 organizations structure cloud infrastructure at scale. This project goes beyond single-account tutorials to prove enterprise architectural thinking across multi-account governance, hybrid cloud networking, and event-driven serverless applications.
+A three-layer AWS platform built across 7 accounts: multi-account governance, hybrid network connectivity, and an event-driven serverless application running on top of both. Each layer depends on the one below it, so the project covers how governance, networking and application design fit together rather than treating them as separate exercises.
 
-**What makes this different:** Most portfolio projects show isolated services in a single account. This platform proves understanding of organizational governance, security orchestration, hybrid integration, and distributed systems architecture — capabilities that separate enterprise architects from junior engineers.
+Built on a personal budget of about $105, using a build, verify, screenshot, then tear down approach for the expensive components.
 
 ---
 
-## Three-Layer Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
+│  LAYER 3 - EVENT-DRIVEN SERVERLESS APPLICATION                              │
 │                                                                             │
-│  LAYER 3 — EVENT-DRIVEN SERVERLESS APPLICATION                             │
-│                                                                             │
-│  ┌─────────┐   ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐  │
-│  │   API    │──→│   Lambda    │──→│  DynamoDB    │──→│  EventBridge     │  │
-│  │ Gateway  │   │ (8 functions│   │ (3 tables)   │   │  SQS / SNS      │  │
-│  │ HTTP API │   │  in VPC)    │   │ Streams/GSIs │   │  Event Backbone  │  │
-│  └─────────┘   └──────┬──────┘   └──────────────┘   └──────────────────┘  │
+│  ┌──────────┐   ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐   │
+│  │   API    │──→│   Lambda    │──→│  DynamoDB    │──→│  EventBridge     │   │
+│  │ Gateway  │   │ (8 functions│   │ (3 tables)   │   │  SQS / SNS       │   │
+│  │ HTTP API │   │  in VPC)    │   │ Streams/GSIs │   │                  │   │
+│  └──────────┘   └──────┬──────┘   └──────────────┘   └──────────────────┘   │
 │                        │                                                    │
 │                 ┌──────┴──────┐                                             │
-│                 │    Step     │  Saga: Payment → Inventory → Fulfillment   │
+│                 │    Step     │  Saga: Payment → Inventory → Fulfillment    │
 │                 │  Functions  │  Compensation: Reverse Payment, Release     │
-│                 │   (Saga)    │  Patterns: CQRS, Event Sourcing, Idempot.  │
 │                 └─────────────┘                                             │
 │                                                                             │
-│  Deployed via Terraform │ 5 modules │ 67 resources │ Remote state in S3    │
-│                                                                             │
+│  Terraform │ 5 modules │ 67 resources │ Remote state in S3                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
+│  LAYER 2 - HYBRID CONNECTIVITY AND NETWORKING                               │
 │                                                                             │
-│  LAYER 2 — HYBRID CLOUD CONNECTIVITY & NETWORK ARCHITECTURE               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ Production   │  │ Development  │  │   Network    │  │ On-Premises  │     │
+│  │ VPC          │  │ VPC          │  │   VPC        │  │ (Simulated)  │     │
+│  │ 10.1.0.0/16  │  │ 10.2.0.0/16  │  │ 10.3.0.0/16  │  │ 192.168.0.0  │     │
+│  │ 3-tier / 3AZ │  │ 3-tier / 2AZ │  │ Network Hub  │  │ strongSwan   │     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
+│         └─────────────────┴────────┬────────┘                 │             │
+│                          ┌─────────┴───────────┐              │             │
+│                          │   Transit Gateway   │── VPN ───────┘             │
+│                          │   Hub-and-Spoke     │  (IPSec / Static)          │
+│                          └─────────────────────┘                            │
 │                                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │ Production   │  │ Development  │  │   Network    │  │  On-Premises  │   │
-│  │ VPC          │  │ VPC          │  │   VPC        │  │  (Simulated)  │   │
-│  │ 10.1.0.0/16  │  │ 10.2.0.0/16  │  │ 10.3.0.0/16  │  │ 192.168.0.0  │   │
-│  │ 3-tier / 3AZ │  │ 3-tier / 2AZ │  │ Network Hub  │  │ strongSwan   │   │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘   │
-│         │                  │                  │                  │           │
-│         └──────────────────┴────────┬─────────┘                  │           │
-│                                     │                            │           │
-│                          ┌──────────┴──────────┐                 │           │
-│                          │   Transit Gateway   │─── VPN Tunnels ─┘           │
-│                          │   Hub-and-Spoke     │   (IPSec / Static)          │
-│                          │   Route Isolation   │                             │
-│                          └─────────────────────┘                             │
-│                                                                             │
-│  Route 53 Resolver │ Security Groups │ NACLs │ VPC Flow Logs │ DNS Zones   │
-│                                                                             │
+│  Route 53 Resolver │ Security Groups │ NACLs │ VPC Flow Logs                │
 ├─────────────────────────────────────────────────────────────────────────────┤
+│  LAYER 1 - MULTI-ACCOUNT GOVERNANCE                                         │
 │                                                                             │
-│  LAYER 1 — ZERO TRUST MULTI-ACCOUNT GOVERNANCE                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
+│  │Management│  │ Security │  │   Log    │  │ Network  │  │Production│       │
+│  │ Account  │  │ Tooling  │  │ Archive  │  │ Account  │  │ Account  │       │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘       │
 │                                                                             │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐    │
-│  │Management│  │ Security │  │   Log    │  │  Network │  │Production│    │
-│  │ Account  │  │ Tooling  │  │ Archive  │  │ Account  │  │ Account  │    │
-│  │  (Root)  │  │(GuardDuty│  │(CloudTrl │  │  (TGW,   │  │ (Workload│    │
-│  │  Org Mgmt│  │ Sec Hub) │  │ FlowLogs)│  │  VPN)    │  │  + App)  │    │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘    │
-│        │                                                                    │
-│        ├── 7 Accounts across 4 Organizational Units                        │
-│        ├── 5 Service Control Policies (encryption, region lock, root deny) │
-│        ├── AWS Control Tower with preventive + detective guardrails         │
-│        ├── IAM Identity Center (SSO) with 4 permission sets                │
-│        ├── GuardDuty + Security Hub + Config + CloudTrail (org-wide)       │
-│        └── Automated threat response (EventBridge → Lambda → SNS)          │
-│                                                                             │
+│  7 accounts, 4 OUs │ 5 SCPs │ Control Tower guardrails                      │
+│  IAM Identity Center (4 permission sets)                                    │
+│  GuardDuty, Security Hub, Config, CloudTrail (org-wide)                     │
+│  Automated threat response: EventBridge, Lambda, SNS                        │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## How the Layers Integrate
+## How the Layers Connect
 
-This isn't three separate projects — it's one cohesive platform where each layer depends on the ones below it.
+**Layer 3 runs on Layer 2.** Lambda functions run in private subnets of the Production VPC, reach DynamoDB through a VPC Gateway Endpoint, and sit behind the security groups and NACLs from Layer 2. VPC Flow Logs capture their traffic.
 
-**Layer 3 runs on Layer 2:** Lambda functions deploy into Production VPC private subnets, access DynamoDB through a VPC Gateway Endpoint, and are governed by the security groups and NACLs built in Layer 2. VPC Flow Logs capture all Lambda network traffic.
+**Layer 2 runs on Layer 1.** Network resources live in the Network account under the Infrastructure OU. Flow Logs land in the Log Archive account, SCPs enforce encryption on network resources, and CloudTrail records every configuration change.
 
-**Layer 2 runs on Layer 1:** Network resources deploy in the Network Account from the Infrastructure OU. VPC Flow Logs aggregate in the Log Archive Account. SCPs enforce encryption on all network resources. CloudTrail logs every configuration change.
-
-**Layer 1 monitors everything:** GuardDuty analyzes Lambda network connections and API activity. Security Hub aggregates findings from all layers. Config tracks resource configurations across accounts. CloudTrail captures every API call organization-wide. Automated response can isolate compromised resources within seconds.
+**Layer 1 watches everything.** GuardDuty analyses Lambda network activity and API calls, Security Hub aggregates findings from all layers, and Config tracks resource state across accounts. A GuardDuty finding triggers an EventBridge rule that invokes a Lambda to isolate the affected EC2 instance, typically in under 60 seconds.
 
 ---
 
-## Technical Highlights
+## What Is in This Repo
 
-### Distributed Systems Patterns
-
-| Pattern | Implementation | Why It Matters |
+| Layer | How it was built | What is here |
 |---|---|---|
-| **Saga Orchestration** | Step Functions coordinating payment → inventory → fulfillment with compensating transactions on failure | Shows understanding of distributed transactions without a shared database |
-| **CQRS** | DynamoDB write model with Streams feeding EventBridge for read-side consumers | Demonstrates read/write scaling independence |
-| **Event Sourcing** | Immutable EventStore table recording every state change with timestamps | Proves audit trail design for regulated industries |
-| **Idempotency** | DynamoDB conditional writes with TTL-based key expiration | Essential for at-least-once delivery systems |
-| **Event-Driven Architecture** | DynamoDB Streams → Lambda → EventBridge → SQS/SNS | Decoupled consumers, zero code changes to add new subscribers |
+| Layer 1 - Governance | Control Tower, Organizations and Identity Center, configured through the console | Design notes, SCP policies, screenshots |
+| Layer 2 - Networking | Built and verified, then torn down to stop ongoing cost | Design notes, network layout, screenshots |
+| Layer 3 - Application | Terraform | Full Terraform modules and Python Lambda source |
 
-### Enterprise Patterns
+Layers 1 and 2 were deleted after testing because Transit Gateway, VPN and NAT Gateways cost roughly $70 a month to keep running. The screenshots in each layer folder are the record of the working setup.
+
+---
+
+## Design Patterns
+
+### Application
 
 | Pattern | Implementation |
 |---|---|
-| **Multi-Account Strategy** | 7 accounts across 4 OUs with hard security boundaries |
-| **Hub-and-Spoke Networking** | Transit Gateway connecting VPCs with route table isolation |
-| **Hybrid Connectivity** | Site-to-Site VPN with dual IPSec tunnels to simulated on-premises |
-| **Hybrid DNS** | Route 53 Resolver with inbound/outbound endpoints and conditional forwarding |
-| **Defense in Depth** | SCPs → Security Groups → NACLs → VPC Endpoints (4 layers of network security) |
-| **Centralized Logging** | CloudTrail + VPC Flow Logs aggregated in dedicated Log Archive account |
-| **Automated Remediation** | GuardDuty findings trigger Lambda-based EC2 isolation within seconds |
-| **Infrastructure as Code** | Terraform with modular architecture, remote state, and environment separation |
+| Saga orchestration | Step Functions coordinating payment, inventory and fulfilment, with compensating steps on failure |
+| CQRS | DynamoDB write model, with Streams feeding EventBridge for read-side consumers |
+| Event sourcing | Immutable EventStore table recording each state change with timestamps |
+| Idempotency | DynamoDB conditional writes with TTL-based key expiry |
+| Event-driven flow | DynamoDB Streams to Lambda to EventBridge to SQS/SNS |
 
-### AWS Services Used (25+)
+### Platform
+
+| Pattern | Implementation |
+|---|---|
+| Multi-account strategy | 7 accounts across 4 OUs, separating workloads and limiting blast radius |
+| Hub-and-spoke networking | Transit Gateway with route table isolation between VPCs |
+| Hybrid connectivity | Site-to-Site VPN with dual IPSec tunnels to a simulated on-premises network |
+| Hybrid DNS | Route 53 Resolver inbound and outbound endpoints with conditional forwarding |
+| Layered network security | SCPs, security groups, NACLs and VPC endpoints |
+| Centralised logging | CloudTrail and VPC Flow Logs aggregated in a dedicated Log Archive account |
+| Automated remediation | GuardDuty findings trigger Lambda-based EC2 isolation |
+
+### AWS Services Used
 
 **Governance:** Organizations, Control Tower, IAM Identity Center, Service Control Policies
-
 **Security:** GuardDuty, Security Hub, Config (8 rules), CloudTrail, IAM Access Analyzer
-
-**Networking:** VPC (3), Transit Gateway, Site-to-Site VPN, Route 53 (PHZ + Resolver), NAT Gateway, VPC Endpoints
-
-**Compute:** Lambda (8 functions deployed in VPC)
-
-**API:** API Gateway HTTP API v2
-
-**Database:** DynamoDB (3 tables with Streams, GSIs, TTL, Point-in-Time Recovery)
-
-**Orchestration:** Step Functions (Standard Workflow with saga pattern)
-
-**Messaging:** EventBridge (custom bus), SQS (with DLQ), SNS
-
-**Observability:** CloudWatch (Logs, Metrics, Dashboard, Alarms), X-Ray
-
-**IaC:** Terraform (5 modules, 67 managed resources, S3 remote state with DynamoDB locking)
+**Networking:** VPC, Transit Gateway, Site-to-Site VPN, Route 53 (private hosted zones and Resolver), NAT Gateway, VPC Endpoints
+**Compute and API:** Lambda (8 functions in VPC), API Gateway HTTP API
+**Data:** DynamoDB (3 tables with Streams, GSIs, TTL and point-in-time recovery)
+**Orchestration and messaging:** Step Functions, EventBridge, SQS with DLQ, SNS
+**Observability:** CloudWatch (logs, metrics, dashboard, alarms), X-Ray
+**IaC:** Terraform (5 modules, 67 resources, S3 remote state with DynamoDB locking)
 
 ---
 
@@ -136,81 +120,69 @@ This isn't three separate projects — it's one cohesive platform where each lay
 
 ```
 aws-enterprise-portfolio/
-│
-├── layer-1-governance/              # Multi-account governance foundation
-│   └── README.md                    # SCPs, Control Tower, security services
-│
-├── layer-2-infrastructure/          # Hybrid cloud network architecture
-│   └── README.md                    # VPCs, Transit Gateway, VPN, DNS, security
-│
-├── layer-3-application/             # Event-driven serverless platform
-│   ├── README.md                    # Detailed Layer 3 documentation
+├── layer-1-governance/
+│   ├── README.md                  # SCPs, Control Tower, security services
+│   └── screenshots/
+├── layer-2-infrastructure/
+│   ├── README.md                  # VPCs, Transit Gateway, VPN, DNS
+│   └── screenshots/
+├── layer-3-application/
+│   ├── README.md
 │   └── terraform/
-│       ├── main.tf                  # Provider config + module orchestration
-│       ├── variables.tf             # Input variable definitions
-│       ├── outputs.tf               # Root-level outputs
-│       ├── cloudwatch.tf            # Dashboard and alarms
+│       ├── main.tf
+│       ├── variables.tf
+│       ├── outputs.tf
+│       ├── cloudwatch.tf
 │       ├── environments/
-│       │   └── production.tfvars    # Production values (gitignored)
+│       │   └── production.tfvars  # gitignored
 │       └── modules/
-│           ├── dynamodb/            # 3 tables: Orders, EventStore, Idempotency
-│           ├── lambda/              # 8 functions + IAM + SG + VPC endpoint
-│           │   └── src/             # Python source code
-│           ├── api-gateway/         # HTTP API with 3 routes
-│           ├── step-functions/      # Order saga state machine
-│           │   └── order_saga.json  # ASL definition
-│           └── events/              # EventBridge + SQS + SNS + stream consumer
-│               └── src/             # Stream consumer Lambda code
-│
+│           ├── dynamodb/          # Orders, EventStore, Idempotency tables
+│           ├── lambda/            # 8 functions, IAM, security group, VPC endpoint
+│           ├── api-gateway/       # HTTP API with 3 routes
+│           ├── step-functions/    # Order saga state machine
+│           └── events/            # EventBridge, SQS, SNS, stream consumer
 ├── LICENSE
-└── README.md                        # This file
+└── README.md
 ```
 
 ---
 
-## Key Architectural Decisions
+## Key Decisions
 
-| Decision | Choice | Rationale |
+| Decision | Choice | Reason |
 |---|---|---|
-| Account strategy | 7 accounts / 4 OUs | Hard security boundaries between workloads; blast radius control |
-| Networking model | Transit Gateway hub-and-spoke | Eliminates VPC peering mesh complexity; centralized routing |
-| VPN routing | Static over BGP | Pragmatic trade-off — BGP added complexity without portfolio value |
-| IaC tool | Terraform | Most marketable skill; cloud-agnostic; strong module ecosystem |
-| API type | HTTP API v2 over REST API | 71% cost reduction; lower latency; sufficient for Lambda proxy |
-| DynamoDB mode | On-Demand | Scales to zero cost; no capacity planning for unpredictable loads |
-| Table design | Separate tables per pattern | Clarity over optimization; each table maps to a distinct pattern |
-| Saga type | Orchestration over choreography | Visual debugging; centralized error handling; execution history |
-| Workflow type | Standard over Express | Exactly-once execution for financial transactions |
-| VPC Lambda | Deployed in private subnets | Security requirement — access private resources through SG chaining |
-| DynamoDB access | VPC Gateway Endpoint | Free; faster; traffic stays on AWS backbone |
-| State backend | S3 + DynamoDB in Management Account | State is a governance concern, not application concern |
-| Cost strategy | Build → screenshot → delete expensive resources | Proves capability without ongoing burn |
+| Account strategy | 7 accounts, 4 OUs | Hard boundaries between workloads and a smaller blast radius |
+| Networking model | Transit Gateway hub-and-spoke | Avoids a VPC peering mesh and keeps routing central |
+| VPN routing | Static instead of BGP | BGP added troubleshooting time without changing what the project demonstrates |
+| IaC tool | Terraform | Widely used, cloud-agnostic, good module ecosystem |
+| API type | HTTP API instead of REST API | Lower cost and latency, and enough for a Lambda proxy |
+| DynamoDB capacity | On-demand | Scales to zero cost with no capacity planning |
+| Saga style | Orchestration instead of choreography | Easier to debug, central error handling, visible execution history |
+| Workflow type | Standard instead of Express | Exactly-once execution for payment steps |
+| Lambda placement | Private subnets | Reach private resources through security group chaining |
+| DynamoDB access | VPC Gateway Endpoint | Free, faster, and keeps traffic off the NAT Gateway |
+| Terraform state | S3 and DynamoDB in the Management account | State is treated as a governance concern |
+| Cost approach | Build, verify, screenshot, tear down | Shows the setup working without a monthly bill |
 
 ---
 
-## Cost Analysis
+## Cost
 
-| Layer | Build Cost | Purpose |
+| Layer | Build cost | Main drivers |
 |---|---|---|
-| Layer 1 | ~$30 | Security services, Config rules, GuardDuty across 6 accounts |
+| Layer 1 | ~$30 | GuardDuty, Config rules and security services across 6 accounts |
 | Layer 2 | ~$70 | Transit Gateway, VPN, NAT Gateways, Resolver endpoints |
-| Layer 3 | ~$2-5 | Serverless — almost entirely within free tiers |
-| **Total** | **~$102-105** | **Well under $400 budget** |
+| Layer 3 | ~$2-5 | Mostly within free tier |
+| **Total** | **~$102-105** | |
 
-Ongoing monthly cost of ~$69-74 is primarily NAT Gateway ($32) and Route 53 Resolver endpoints ($24). All Layer 3 serverless resources cost near-zero at rest.
-
-**Cost optimization applied:** Transit Gateway and VPN deleted after screenshots ($72/month saved). Two extra NAT Gateways deleted. DynamoDB On-Demand instead of provisioned capacity. 14-day CloudWatch log retention. HTTP API v2 instead of REST API (71% savings).
+Running everything continuously would cost around $69-74 a month, mostly NAT Gateway ($32) and Route 53 Resolver endpoints ($24). To keep costs down I deleted Transit Gateway and VPN after testing, removed two extra NAT Gateways, used DynamoDB on-demand, set CloudWatch log retention to 14 days, and chose HTTP API over REST API.
 
 ---
 
-## Deployment
+## Deploying Layer 3
 
-### Prerequisites
-- AWS CLI v2 with SSO configured
-- Terraform >= 1.5.0
-- Access to Production account via `production-admin` SSO profile
+**Prerequisites:** AWS CLI v2 with SSO configured, Terraform 1.5 or later, and access to the Production account through a `production-admin` SSO profile.
 
-### Layer 3 Deployment
 ```bash
 cd layer-3-application/terraform
 aws sso login --profile production-admin
@@ -219,7 +191,8 @@ terraform plan -var-file=environments/production.tfvars
 terraform apply -var-file=environments/production.tfvars
 ```
 
-### Verify
+**Verify:**
+
 ```bash
 # Create an order
 curl -s -X POST $(terraform output -raw api_endpoint)/orders \
@@ -236,39 +209,24 @@ aws stepfunctions start-execution \
 
 ## Lessons Learned
 
-**Technical discoveries from building, not reading:**
+1. **DynamoDB rejects Python floats.** It needs `Decimal` types, so parse with `json.loads(body, parse_float=Decimal)` and use a custom encoder when serialising.
 
-1. **DynamoDB rejects Python floats** — requires `Decimal` types. Use `json.loads(body, parse_float=Decimal)` and a custom encoder for serialization. Every Python developer hits this.
+2. **NACLs are stateless.** Lambda in a VPC needed an explicit outbound rule for port 443 in the NACL, even though security groups allow return traffic automatically. This one took real debugging because it sits between Layer 2 and Layer 3.
 
-2. **NACLs are stateless** — VPC Lambda needs explicit outbound port 443 in NACLs, even though security groups automatically allow return traffic. This Layer 2 + Layer 3 integration issue took real debugging to find.
+3. **VPC Gateway Endpoints should be the default** for any VPC running Lambda. They are free, faster, and keep DynamoDB and S3 traffic off the NAT Gateway.
 
-3. **VPC Gateway Endpoints** should be default for any VPC with Lambda — free, faster, and more secure than routing DynamoDB/S3 traffic through NAT Gateway.
+4. **Lambda needs two kinds of permission.** The execution role controls what Lambda can do, and a resource-based policy controls who can invoke it. Without `aws_lambda_permission` for API Gateway, requests fail with a 500 and no obvious error.
 
-4. **Lambda needs two types of permissions** — IAM execution roles (what Lambda can do) AND resource-based policies (who can invoke Lambda). Missing the `aws_lambda_permission` for API Gateway results in silent 500 errors.
+5. **Saga compensation has to be idempotent.** Compensation functions check current state before acting, otherwise a retry can reverse a payment twice or release inventory that was never reserved.
 
-5. **Saga compensation must be idempotent** — compensation functions check current state before acting. Without this, retried compensations reverse payments twice or release unreserved inventory.
+6. **Static routing was the right trade-off.** BGP troubleshooting on the simulated on-premises side was taking hours without adding much to the project, so I switched to static routes.
 
-6. **Static routing was the right call over BGP** — BGP troubleshooting consumed hours with diminishing portfolio returns. Pragmatic trade-offs over perfection is how real architects think.
+7. **Terraform state migration is simple.** `terraform init -migrate-state` moves local state to S3 in one step, so starting locally and migrating later works fine.
 
-7. **Terraform state migration is seamless** — `terraform init -migrate-state` moves from local to S3 remote state in one command. Start local for speed, migrate when ready for collaboration.
-
-8. **SCP propagation takes 5-10 minutes** — testing immediately after attaching an SCP to an OU gives false negatives. Real enterprise architects know to wait.
+8. **SCPs take 5-10 minutes to propagate.** Testing straight after attaching one to an OU gives misleading results.
 
 ---
 
-## What This Proves
+## License
 
-| Capability | Evidence |
-|---|---|
-| Multi-account strategy | 7 accounts, 4 OUs, 5 SCPs, cross-account resource sharing |
-| Zero Trust implementation | Encryption everywhere, GuardDuty detection, automated response, least-privilege IAM |
-| Hybrid cloud architecture | Transit Gateway hub-and-spoke, Site-to-Site VPN, Route 53 hybrid DNS |
-| Distributed systems design | Saga, CQRS, Event Sourcing, Idempotency — implemented, not just discussed |
-| Infrastructure as Code | Terraform modules, remote state, environment separation |
-| Security automation | GuardDuty → EventBridge → Lambda remediation in seconds |
-| Cost engineering | $102 total spend; build-document-delete strategy; serverless for near-zero ongoing |
-| Operational readiness | CloudWatch dashboard, alarms, X-Ray tracing, centralized logging |
-
----
-
-*Built in 6 days. 25+ AWS services. 7 accounts. 67 Terraform-managed resources. 4 distributed systems patterns. One integrated platform.*
+MIT
